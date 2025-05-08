@@ -1,22 +1,7 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.8"
-# dependencies = [
-#     "typer",
-#     "tiktoken",
-#     "openai",
-#     "tqdm",
-# ]
-# ///
-
 import re
 import subprocess
 import tempfile
 from pathlib import Path
-
-environment_imports = (
-    "ffmpeg >= 4.2",
-)
 
 import typer
 import tiktoken
@@ -193,4 +178,3 @@ def stt(
 
 if __name__ == "__main__":
     app()
-

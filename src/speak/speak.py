@@ -1,14 +1,3 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.8"
-# dependencies = [
-#     "typer",
-#     "tiktoken",
-#     "openai",
-#     "tqdm",
-# ]
-# ///
-
 import re
 import subprocess
 import tempfile
