@@ -119,7 +119,9 @@ def tts(
             "-hide_banner", "-loglevel", "error", "-nostats",
             "-y", "-f", "concat", "-safe", "0",
             "-i", str(concat_list),
-            "-c", "copy", str(output),
+            "-c:a", "libmp3lame",
+            "-b:a", "192k",
+            str(output),
         ], check=True)
 
         # Done with tmpdir; it and all chunk_*.mp3 + concat.txt get auto-deleted here
