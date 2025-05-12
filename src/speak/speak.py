@@ -57,7 +57,7 @@ def chunk_paragraphs(paragraphs: list[str], max_tokens: int, enc) -> list[list[s
 
 @app.command()
 def synthesize(
-    input_file: Path = typer.Argument(..., exists=True, help="Input UTF-8 .txt file"),
+    input_file: Path = typer.Argument(None, exists=False, help="Input UTF-8 .txt file or '-' for stdin"),
     max_tokens: int = typer.Option(
         1500, "-m", "--max-tokens", help="Max tokens per TTS request"
     ),
@@ -70,13 +70,22 @@ def synthesize(
     ),
 ):
     """
-    1) Read INPUT_FILE, split into <=MAX_TOKENS chunks on paragraphs,
+    1) Read INPUT_FILE or stdin, split into <=MAX_TOKENS chunks on paragraphs,
     2) Stream each to OpenAI TTS → MP3,
     3) Concatenate via ffmpeg,
     4) Report tokens/characters, duration, cost,
     5) Clean up all intermediate files.
     """
-    raw = input_file.read_text(encoding="utf-8")
+    # Read from stdin if input_file is None or '-'
+    if input_file is None or str(input_file) == '-':
+        import sys
+        raw = sys.stdin.read()
+    else:
+        # Verify file exists when not using stdin
+        if not input_file.exists():
+            typer.echo(f"Error: Input file '{input_file}' does not exist.", err=True)
+            raise typer.Exit(1)
+        raw = input_file.read_text(encoding="utf-8")
     total_chars = len(raw)
     enc = tiktoken.encoding_for_model(tts_model)
     paras = load_paragraphs(raw)
@@ -144,24 +153,6 @@ def synthesize(
 
         # Done with tmpdir; it and all chunk_*.mp3 + concat.txt get auto-deleted here
 
-    # measure duration
-    result = subprocess.run(
-        [
-            "ffprobe",
-            "-v",
-            "error",
-            "-show_entries",
-            "format=duration",
-            "-of",
-            "default=noprint_wrappers=1:nokey=1",
-            str(output),
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    duration = float(result.stdout.strip())
-
     # cost calc
     pricing = MODEL_PRICING[tts_model]
     if pricing["unit"] == "tokens":
@@ -174,7 +165,6 @@ def synthesize(
     typer.echo("\n🎉 Done!")
     typer.echo(f"• Tokens processed: {total_tokens}")
     typer.echo(f"• Characters processed: {total_chars}")
-    typer.echo(f"• Audio duration: {duration:.1f}s ({duration / 60:.2f}m)")
     if cost is not None:
         typer.echo(f"• Exact cost (@ ${pricing['price']}/1M {unit}): ${cost:.6f}")
 
