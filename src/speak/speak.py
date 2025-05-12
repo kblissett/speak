@@ -8,10 +8,6 @@ import tiktoken
 from tqdm import tqdm
 from openai import OpenAI
 
-app = typer.Typer(
-    help="Split text, synthesize via OpenAI TTS, concat, and clean up intermediates."
-)
-
 # Pricing definitions (unit, price per 1M)
 MODEL_PRICING = {
     "gpt-4o-mini-tts": {"unit": "tokens", "price": 12.00},
@@ -55,9 +51,10 @@ def chunk_paragraphs(paragraphs: list[str], max_tokens: int, enc) -> list[list[s
     return chunks
 
 
-@app.command()
-def synthesize(
-    input_file: Path = typer.Argument(None, exists=False, help="Input UTF-8 .txt file or '-' for stdin"),
+def say(
+    input_file: Path = typer.Argument(
+        None, exists=False, help="Input UTF-8 .txt file or '-' for stdin"
+    ),
     max_tokens: int = typer.Option(
         1500, "-m", "--max-tokens", help="Max tokens per TTS request"
     ),
@@ -77,8 +74,9 @@ def synthesize(
     5) Clean up all intermediate files.
     """
     # Read from stdin if input_file is None or '-'
-    if input_file is None or str(input_file) == '-':
+    if input_file is None or str(input_file) == "-":
         import sys
+
         raw = sys.stdin.read()
     else:
         # Verify file exists when not using stdin
@@ -170,4 +168,7 @@ def synthesize(
 
 
 if __name__ == "__main__":
-    app()
+    # Create a simple Typer app for direct execution
+    cli = typer.Typer()
+    cli.command()(say)
+    cli()

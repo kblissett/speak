@@ -8,10 +8,6 @@ import tiktoken
 from tqdm import tqdm
 from openai import OpenAI
 
-app = typer.Typer(
-    help="Split audio file on silences, transcribe via OpenAI STT, aggregate transcript, and report cost."
-)
-
 # Pricing definitions: input (per minute) and output (per 1M tokens)
 MODEL_PRICING = {
     "gpt-4o-transcribe": {
@@ -167,7 +163,6 @@ def get_duration(path: Path) -> float:
     return float(res.stdout.strip())
 
 
-@app.command()
 def transcribe(
     input_file: Path = typer.Argument(
         ..., exists=True, help="Input audio file (mp3, wav, etc.)"
@@ -218,7 +213,7 @@ def transcribe(
     full_text = "\n\n".join(transcripts)
     output.write_text(full_text, encoding="utf-8")
 
-    pricing = MODEL_PRICING.get(stt_model)
+    pricing = MODEL_PRICING[stt_model]
     enc = (
         tiktoken.encoding_for_model(stt_model)
         if pricing and pricing.get("unit_out") == "tokens"
@@ -248,4 +243,7 @@ def transcribe(
 
 
 if __name__ == "__main__":
-    app()
+    # Create a simple Typer app for direct execution
+    cli = typer.Typer()
+    cli.command()(transcribe)
+    cli()
