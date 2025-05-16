@@ -1,24 +1,77 @@
 # speak
 
-_Built with the help of **o4-mini-high**._
+Audio CLI toolkit for text-to-speech and speech-to-text using OpenAI models.
 
-A simple, one-file, CLI tool for accessing OpenAI TTS models.
+## Features
+
+- **say**: Text-to-speech (TTS) using OpenAI's TTS models.
+- **listen**: Speech-to-text (STT) using OpenAI's transcription models.
 
 ## Installation
 
-No virtualenv or `pip install` needed—just make sure you have `uv` and `ffmpeg` on your `PATH`.
+### Requirements
+
+- Python ≥3.13
+- FFmpeg (with `ffprobe`) on your `PATH`
+
+### Install via pip
 
 ```bash
-# Clone this repo
-git clone https://github.com/kblissett/speak.git
-cd speak
-
-chmod +x speak.py
-./speak.py $INPUT_FILE -o $OUTPUT_FILE
+pip install speak
 ```
 
-## Requirements
+> Or install from source:
 
-- **uv** (https://github.com/uv/uv) — for the “shebang” auto-venv runner  
-- **ffmpeg** (with `ffprobe`) — for MP3 concat and duration measurement  
+```bash
+git clone https://github.com/kblissett/speak.git
+cd speak
+pip install .
+```
+
+## Configuration
+
+Set your OpenAI API key:
+
+```bash
+export OPENAI_API_KEY=your_api_key_here
+```
+
+## Usage
+
+### Text-to-speech (say)
+
+```bash
+speak say input.txt -o output.mp3
+```
+
+Options:
+
+```bash
+speak say \
+  --model gpt-4o-mini-tts \
+  --voice coral \
+  --max-tokens 1500 \
+  input.txt \
+  -o output.mp3
+```
+
+### Speech-to-text (listen)
+
+```bash
+speak listen input.mp3 -o transcript.txt
+```
+
+Options:
+
+```bash
+speak listen \
+  --model gpt-4o-transcribe \
+  --max-size-mb 25 \
+  input.mp3 \
+  -o transcript.txt
+```
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
