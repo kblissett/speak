@@ -3,10 +3,10 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-import typer
 import tiktoken
-from tqdm import tqdm
+import typer
 from openai import OpenAI
+from tqdm import tqdm
 
 # Pricing definitions (unit, price per 1M)
 MODEL_PRICING = {
@@ -61,17 +61,18 @@ def say(
     tts_model: str = typer.Option(
         "gpt-4o-mini-tts", "--model", help="TTS model to use"
     ),
-    voice: str = typer.Option("coral", "--voice", help="Built-in voice name"),
+    voice: str = typer.Option("ash", "--voice", help="Built-in voice name"),
     output: Path = typer.Option(
         Path("output.mp3"), "-o", "--output", help="Final MP3 filename"
     ),
 ):
     """
     1) Read INPUT_FILE or stdin, split into <=MAX_TOKENS chunks on paragraphs,
-    2) Stream each to OpenAI TTS → MP3,
-    3) Concatenate via ffmpeg,
-    4) Report tokens/characters, duration, cost,
-    5) Clean up all intermediate files.
+    2) Stream each to OpenAI TTS → WAV,
+    3) Concatenate via ffmpeg concat demuxer,
+    4) Transcode final WAV to MP3 via ffmpeg,
+    5) Report tokens/characters, duration, cost,
+    6) Clean up all intermediate files.
     """
     # Read from stdin if input_file is None or '-'
     if input_file is None or str(input_file) == "-":
@@ -102,30 +103,30 @@ def say(
     with tempfile.TemporaryDirectory() as tmp:
         tmpdir = Path(tmp)
 
-        mp3_parts: list[Path] = []
+        wav_parts: list[Path] = []
         typer.echo("📣 Synthesizing chunks:")
         for idx, chunk in enumerate(
             tqdm(chunks, desc=" TTS chunks", unit="chunk"), start=1
         ):
             text = "\n\n".join(chunk)
-            part = tmpdir / f"chunk_{idx:03}.mp3"
+            part = tmpdir / f"chunk_{idx:03}.wav"
             with client.audio.speech.with_streaming_response.create(
                 model=tts_model,
                 voice=voice,
                 input=text,
-                response_format="mp3",
+                response_format="wav",
             ) as resp:
                 resp.stream_to_file(part)
-            mp3_parts.append(part)
+            wav_parts.append(part)
 
-        # write ffmpeg concat list inside tmpdir
+        # Use ffmpeg concat demuxer to join wavs and transcode to mp3 in one step
         concat_list = tmpdir / "concat.txt"
         concat_list.write_text(
-            "\n".join(f"file '{p.as_posix()}'" for p in mp3_parts),
+            "\n".join(f"file '{p.as_posix()}'" for p in wav_parts),
             encoding="utf-8",
         )
 
-        typer.echo("🔗 Concatenating via ffmpeg…")
+        typer.echo("🔗 Concatenating and transcoding to MP3 via ffmpeg…")
         subprocess.run(
             [
                 "ffmpeg",
@@ -149,7 +150,7 @@ def say(
             check=True,
         )
 
-        # Done with tmpdir; it and all chunk_*.mp3 + concat.txt get auto-deleted here
+        # Done with tmpdir; it and all chunk_*.wav + concat.txt get auto-deleted here
 
     # cost calc
     pricing = MODEL_PRICING[tts_model]
